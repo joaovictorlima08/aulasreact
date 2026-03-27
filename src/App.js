@@ -1,69 +1,97 @@
-import logo from './logo.svg';
-import './App.css';
-import { useEffect, useState } from 'react';
-import api from './api';
-import Input from './Input';
-import Button from './Button';
+import React, { useEffect, useState } from 'react'
+import PropTypes from 'prop-types'
+import Input from './Input'
+import Button from './Button'
+import axios from 'axios'
 
-function App() {
+const api = axios.create({
+  baseURL: "http://localhost:38000"
+})
 
-  const [posts, setPosts] = useState([])
-  const [form, setForm] = useState({id: '', title:'', author: ''})
-  const [enviado, setEnviado] = useState(0)
+const App = props => {
+  const [form, setForm] = useState({id:'',title:'',author:''})
+  const [books, setBooks] = useState([
+    
+  ])
 
   useEffect(() => {
-    api.get("/posts")
-      .then( resposta => setPosts(resposta.data))
-  },[])
+    getBooks();
+  }, [])
 
-  const pegaPosts = () => {
-    api.get("/posts")
-      .then( resposta => setPosts(resposta.data))
-
-  }
-
+  // Pegar os dados de cada input no formulário
   const handleChange = (e) => {
-    e.preventDefault()
     const {name, value} = e.target;
-    setForm({...form, [name]: value})
+    setForm({...form, [name]: value })
   }
 
-  const adicionaPost = e => {
+  // Pegar os livros do servidor
+  const getBooks = () => {
+    api.get("/books")
+    .then(res => setBooks(res.data))
+    .catch(err => console.log(err))
+  }
+
+  // enviar um livro para o servidor, e, pegar a atualizacao
+  const handleSubmit = (e) => {
     e.preventDefault();
-    console.log(form)
-    api.post("/posts", form)
-    .then(console.log).then(pegaPosts)
+    api.post("/books", form )
+      .then(res => {
+        console.log(res)
+        // limpa formulario
+        setForm({id:'',title:'',author:''})
+        getBooks();
+      })
+      .catch(err => console.log(err))
+    
+  }
+
+  const deleteFromServer = (id) => {
+    api.delete("/books/" + id)
+      .then(res => {
+        console.log(res);
+        getBooks();
+      })
   }
 
   return (
-    <div className="App">
+    <div>
       <form>
-        <Input id="id" name="id" onChange={handleChange} label="ID"  />
-        <Input id="title" name="title" onChange={handleChange} label="Title"  />
-        <Input id="author" name="author" onChange={handleChange} label="Author"  />
-        <Button onClick={adicionaPost} >Adicionar Post</Button>
+        <Input id="id" label="ID" name="id"
+         value={form.id} onChange={handleChange} />
+        <Input id="title" label="Title" name="title"
+         value={form.title} onChange={handleChange} />
+        <Input id="author" label="Author" name="author"
+         value={form.author} onChange={handleChange} />
+        <Button onClick={handleSubmit}>
+          <h2>Submit</h2>
+        </Button>
       </form>
-      <hr />
+
       <table>
         <thead>
           <tr>
             <th>ID</th>
             <th>Title</th>
             <th>Author</th>
+            <th>Deletar</th>
           </tr>
         </thead>
         <tbody>
-          {posts.map((post, i) => 
-          <tr key={i}>
-            <td>{post.id}</td>
-            <td>{post.title}</td>
-            <td>{post.author}</td>
-          </tr>
-          )}
-      </tbody>
+          {books.map((book) => <tr>
+            <td>{book.id}</td>
+            <td>{book.title}</td>
+            <td>{book.author}</td>
+            <td onClick={() => deleteFromServer(book.id)}>X</td>
+
+          </tr>)}
+        </tbody>
       </table>
+
+
     </div>
-  );
+  )
 }
 
-export default App;
+App.propTypes = {}
+
+export default App
